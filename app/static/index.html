@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Нотатки</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<h2>Нотатки</h2>
+
+<form id="form">
+  <input type="text" id="text" size="40" placeholder="Текст нотатки">
+  <button type="submit">Додати</button>
+</form>
+
+<ul id="list"></ul>
+
+<script>
+function load() {
+  fetch('/notes')
+    .then(r => r.json())
+    .then(notes => {
+      var list = document.getElementById('list');
+      list.innerHTML = '';
+      notes.forEach(n => {
+        var li = document.createElement('li');
+        li.textContent = n.text + ' ';
+        var btn = document.createElement('button');
+        btn.textContent = 'видалити';
+        btn.onclick = () => fetch('/notes/' + n.id, { method: 'DELETE' }).then(load);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+    });
+}
+
+document.getElementById('form').onsubmit = function (e) {
+  e.preventDefault();
+  var text = document.getElementById('text').value;
+  if (!text) return;
+  fetch('/notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text })
+  }).then(() => {
+    document.getElementById('text').value = '';
+    load();
+  });
+};
+
+load();
+</script>
+</body>
+</html>

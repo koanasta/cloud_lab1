@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 
@@ -35,6 +36,11 @@ app = FastAPI(title="Notes API", lifespan=lifespan)
 
 class NoteIn(BaseModel):
     text: str
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
 
 @app.get("/health")
