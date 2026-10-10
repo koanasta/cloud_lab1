@@ -14,6 +14,14 @@ variable "github_repo" {
   type        = string
 }
 
+# GitHub пише в OIDC-токен sub з незмінними ID власника і репо:
+# repo:логін@id/назва@id. Подивитись свій:
+# gh api repos/логін/назва/actions/oidc/customization/sub
+variable "github_oidc_sub_prefix" {
+  description = "Префікс sub з OIDC-токена GitHub для цього репозиторію"
+  type        = string
+}
+
 variable "image_tag" {
   description = "Тег образу для першого запуску; далі образ оновлює CI"
   type        = string
