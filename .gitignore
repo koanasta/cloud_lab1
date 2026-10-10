@@ -1,0 +1,13 @@
+# локальні секрети
+.env
+*.tfvars
+!*.tfvars.example
+
+# службові файли Terraform (state містить чутливі дані)
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Python
+__pycache__/
+.venv/

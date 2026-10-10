@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16.4-bookworm          # теж фіксована версія
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data   # дані бази живуть у volume
+    healthcheck:                           # "база готова приймати з'єднання?"
+      test: ["CMD-SHELL", "pg_isready -U notes -d notes"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"                        # назовні тільки API, порт бази не публікуємо
+    environment:
+      DB_HOST: db                          # ім'я сервісу, а не localhost
+      DB_NAME: notes
+      DB_USER: notes
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy         # чекати не старту, а готовності
+
+volumes:
+  db-data:
