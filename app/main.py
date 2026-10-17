@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 
 def connect():
-    # усе береться зі змінних середовища, жодного пароля в коді
     return psycopg.connect(
         host=os.environ["DB_HOST"],
         port=os.environ.get("DB_PORT", "5432"),
@@ -20,7 +19,6 @@ def connect():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # при старті створюємо таблицю, якщо її ще немає
     with connect() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS notes (
