@@ -3,7 +3,7 @@
 *.tfvars
 !*.tfvars.example
 
-# службові файли Terraform (state містить чутливі дані)
+# службові файли 
 .terraform/
 *.tfstate
 *.tfstate.*
