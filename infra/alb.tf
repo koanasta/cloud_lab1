@@ -1,11 +1,10 @@
 resource "aws_lb" "main" {
   name               = "${var.project}-alb"
   load_balancer_type = "application"
-  subnets            = aws_subnet.public[*].id # стоїть у публічних підмережах
+  subnets            = aws_subnet.public[*].id 
   security_groups    = [aws_security_group.alb.id]
 }
 
-# Цільова група: куди ALB шле трафік. target_type = "ip", бо Fargate
 resource "aws_lb_target_group" "app" {
   name        = "${var.project}-tg"
   port        = 8000
@@ -14,7 +13,7 @@ resource "aws_lb_target_group" "app" {
   target_type = "ip"
 
   health_check {
-    path                = "/health" # ендпоінт застосунку
+    path                = "/health"
     matcher             = "200"
     interval            = 15
     healthy_threshold   = 2
@@ -22,7 +21,6 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-# Слухач: "все, що прийшло на порт 80, перешли в цільову групу"
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
