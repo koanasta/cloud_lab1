@@ -1,4 +1,3 @@
-# список зон доступності в регіоні (eu-central-1a, 1b, ...)
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -14,7 +13,6 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id # посилання = залежність: спершу VPC, потім IGW
 }
 
-# count = 2 створює дві копії ресурсу: [0] і [1], по одній на зону
 resource "aws_subnet" "public" {
   count                   = 2
   vpc_id                  = aws_vpc.main.id
@@ -32,7 +30,6 @@ resource "aws_subnet" "private" {
   tags              = { Name = "${var.project}-private-${count.index}" }
 }
 
-# NAT: приватні підмережі можуть ходити назовні (качати образ з ECR), але не навпаки
 resource "aws_eip" "nat" {
   domain = "vpc"
 }
@@ -43,7 +40,6 @@ resource "aws_nat_gateway" "main" {
   depends_on    = [aws_internet_gateway.main]
 }
 
-# Таблиця маршрутів публічних підмереж: усе "назовні" — через IGW
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
   route {
@@ -58,7 +54,6 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Таблиця маршрутів приватних підмереж: назовні — тільки через NAT
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
   route {
@@ -73,7 +68,6 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# ---------- Security groups: ланцюжок інтернет → ALB → app → db ----------
 
 resource "aws_security_group" "alb" {
   name   = "${var.project}-alb"
