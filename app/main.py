@@ -46,6 +46,11 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/error", include_in_schema=False)
+def debug_error():
+    raise RuntimeError("test error for CloudWatch alarm")
+
+
 @app.get("/notes")
 def list_notes():
     with connect() as conn:

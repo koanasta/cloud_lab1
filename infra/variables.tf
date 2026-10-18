@@ -27,3 +27,8 @@ variable "image_tag" {
   type        = string
   default     = "bootstrap"
 }
+
+variable "alert_email" {
+  description = "Пошта, куди CloudWatch надсилатиме алерти"
+  type        = string
+}

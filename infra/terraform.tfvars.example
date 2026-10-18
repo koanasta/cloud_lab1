@@ -1,2 +1,3 @@
 github_repo            = "your-github-login/cloud_lab1"
 github_oidc_sub_prefix = "repo:your-github-login@owner-id/cloud_lab1@repo-id"
+alert_email            = "you@example.com"
