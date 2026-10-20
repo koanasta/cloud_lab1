@@ -1,14 +1,11 @@
-# локальні секрети
 .env
 *.tfvars
 !*.tfvars.example
 
-# службові файли 
 .terraform/
 *.tfstate
 *.tfstate.*
 tfplan
 
-# Python
 __pycache__/
 .venv/
