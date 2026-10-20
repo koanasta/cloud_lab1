@@ -3,7 +3,6 @@ resource "aws_cloudwatch_log_group" "app" {
   retention_in_days = 7
 }
 
-# ---------- Роль, яку "одягає" ECS при запуску контейнера ----------
 data "aws_iam_policy_document" "ecs_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -19,13 +18,11 @@ resource "aws_iam_role" "ecs_execution" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
-# стандартна політика AWS: тягнути образи з ECR і писати логи
 resource "aws_iam_role_policy_attachment" "ecs_execution" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# + право прочитати ОДИН конкретний секрет — пароль бази (найменші привілеї)
 resource "aws_iam_role_policy" "read_db_secret" {
   name = "read-db-secret"
   role = aws_iam_role.ecs_execution.id
@@ -39,7 +36,6 @@ resource "aws_iam_role_policy" "read_db_secret" {
   })
 }
 
-# ---------- Кластер, task definition, service ----------
 resource "aws_ecs_cluster" "main" {
   name = var.project
 }
@@ -58,13 +54,11 @@ resource "aws_ecs_task_definition" "app" {
     essential    = true
     portMappings = [{ containerPort = 8000 }]
 
-    # звичайні (не секретні) налаштування
     environment = [
       { name = "DB_HOST", value = aws_db_instance.main.address },
       { name = "DB_NAME", value = aws_db_instance.main.db_name },
       { name = "DB_USER", value = aws_db_instance.main.username },
     ]
-    # пароль: ECS сам дістане поле "password" із секрету і передасть як змінну
     secrets = [
       { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
     ]
@@ -88,7 +82,7 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id # контейнер у приватних підмережах
+    subnets          = aws_subnet.private[*].id 
     security_groups  = [aws_security_group.app.id]
     assign_public_ip = false
   }
@@ -101,8 +95,7 @@ resource "aws_ecs_service" "app" {
 
   depends_on = [aws_lb_listener.http]
 
-  # Нові версії образу деплоїть GitHub Actions, а не Terraform.
-  # Без цього terraform apply щоразу "відкочував" би сервіс на старий образ.
+
   lifecycle {
     ignore_changes = [task_definition]
   }
