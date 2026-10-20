@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
 
-# id-token: write — дозвіл отримати OIDC-токен від GitHub
 permissions:
   id-token: write
   contents: read
@@ -21,20 +20,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # 1. Забрати код репозиторію
       - uses: actions/checkout@v4
 
-      # 2. OIDC: обміняти токен GitHub на тимчасовий доступ до ролі в AWS
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3. Залогінитись у ECR
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Зібрати образ і запушити з тегом = хеш коміту
       - name: Build and push image
         run: |
           IMAGE="${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:${{ github.sha }}"
@@ -42,7 +37,6 @@ jobs:
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
-      # 5. Взяти поточну task definition і підставити в неї новий образ
       - name: Download current task definition
         run: aws ecs describe-task-definition --task-definition "$TASK_FAMILY" --query taskDefinition > task-def.json
 
@@ -53,7 +47,6 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ env.IMAGE }}
 
-      # 6. Зареєструвати нову версію і оновити сервіс, дочекавшись, поки він стане здоровим
       - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render.outputs.task-definition }}
