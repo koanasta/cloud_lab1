@@ -10,7 +10,6 @@ terraform {
 
 provider "aws" {
   region = var.region
-  # цей тег додасться до всіх ресурсів — легко знайти в консолі
   default_tags {
     tags = { Project = "cloud-lab1" }
   }
