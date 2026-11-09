@@ -44,7 +44,18 @@ PASS async: exactly one row in DB | notes_count=1
 
 Два однакові запити дають один запис у базі і дві однакові відповіді.
 
-Результат проти розгорнутого в AWS сервісу: __
+Результат проти розгорнутого в AWS сервісу (`BASE_URL=http://notes-alb-2035988474.eu-central-1.elb.amazonaws.com`, 09.11.2026, справжні SQS і обробник `notes-worker`):
+
+```
+PASS two identical requests -> same status | 201, 201
+PASS two identical requests -> same body | {'id': 1, ...} vs {'id': 1, ...}
+PASS second response marked as replay | true
+PASS exactly one row in DB | notes_count=1
+PASS same key, different body -> 422 | 422
+PASS async: two identical requests -> same job | 2a8db579... vs 2a8db579...
+PASS async: job finished | {'status': 'done', 'note_id': 2, 'attempt': 1}
+PASS async: exactly one row in DB | notes_count=1
+```
 
 ## Як поєднується з чергою (завдання 6)
 

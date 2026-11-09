@@ -1,0 +1,13 @@
+{
+  "users": 20,
+  "requests": 38571,
+  "rps": 67.6,
+  "error_rate": 0.23,
+  "p50_ms": 98.5,
+  "p95_ms": 289,
+  "p99_ms": 577.4,
+  "max_ms": 10268.4,
+  "post_p95_ms": 410.2,
+  "list_p95_ms": 257.3,
+  "async": true
+}
