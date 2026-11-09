@@ -45,7 +45,7 @@ resource "aws_cloudwatch_metric_alarm" "no_healthy_targets" {
 
 resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
   alarm_name        = "${var.project}-ecs-cpu-high"
-  alarm_description = "Контейнер навантажений більше ніж на 80% CPU"
+  alarm_description = "Середнє завантаження CPU сервісу понад 70% протягом 2 хвилин"
   namespace         = "AWS/ECS"
   metric_name       = "CPUUtilization"
   dimensions = {
@@ -53,12 +53,14 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
     ServiceName = aws_ecs_service.app.name
   }
   statistic           = "Average"
-  period              = 300
+  period              = 60
   evaluation_periods  = 2
-  threshold           = 80
+  datapoints_to_alarm = 2
+  threshold           = 70
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
 }
 
 locals {
@@ -74,47 +76,80 @@ resource "aws_cloudwatch_dashboard" "main" {
       {
         type = "metric", x = 0, y = 0, width = 12, height = 6
         properties = {
-          title  = "Запити і помилки (ALB)"
+          title  = "1. Кількість екземплярів: бажана і фактична"
           region = var.region
-          stat   = "Sum"
+          stat   = "Average"
           period = 60
+          view   = "timeSeries"
           metrics = [
-            concat(["AWS/ApplicationELB", "RequestCount"], local.alb_dim),
-            concat(["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count"], local.alb_dim),
-            concat(["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count"], local.alb_dim),
+            concat(["ECS/ContainerInsights", "DesiredTaskCount"], local.ecs_dim, [{ label = "Desired" }]),
+            concat(["ECS/ContainerInsights", "RunningTaskCount"], local.ecs_dim, [{ label = "Running" }]),
           ]
+          yAxis = { left = { min = 0, max = var.max_instances + 1 } }
         }
       },
       {
         type = "metric", x = 12, y = 0, width = 12, height = 6
         properties = {
-          title   = "Час відповіді, секунди (ALB)"
+          title   = "2. Завантаження CPU, %"
+          region  = var.region
+          stat    = "Average"
+          period  = 60
+          view    = "timeSeries"
+          metrics = [concat(["AWS/ECS", "CPUUtilization"], local.ecs_dim, [{ label = "CPU avg" }])]
+          yAxis   = { left = { min = 0, max = 100 } }
+          annotations = {
+            horizontal = [
+              { label = "ціль масштабування ${var.cpu_target}%", value = var.cpu_target },
+              { label = "поріг алерту 70%", value = 70, color = "#d62728" },
+            ]
+          }
+        }
+      },
+      {
+        type = "metric", x = 0, y = 6, width = 8, height = 6
+        properties = {
+          title   = "3. Запити за хвилину"
+          region  = var.region
+          stat    = "Sum"
+          period  = 60
+          view    = "timeSeries"
+          metrics = [concat(["AWS/ApplicationELB", "RequestCount"], local.alb_dim, [{ label = "Requests/min" }])]
+        }
+      },
+      {
+        type = "metric", x = 8, y = 6, width = 8, height = 6
+        properties = {
+          title   = "4. Латентність p95, секунди"
           region  = var.region
           stat    = "p95"
           period  = 60
-          metrics = [concat(["AWS/ApplicationELB", "TargetResponseTime"], local.alb_dim)]
+          view    = "timeSeries"
+          metrics = [concat(["AWS/ApplicationELB", "TargetResponseTime"], local.alb_dim, [{ label = "p95" }])]
+          annotations = {
+            horizontal = [{ label = "500 мс", value = 0.5 }]
+          }
         }
       },
       {
-        type = "metric", x = 0, y = 6, width = 12, height = 6
+        type = "metric", x = 16, y = 6, width = 8, height = 6
         properties = {
-          title  = "CPU і пам'ять контейнера, % (ECS)"
-          region = var.region
-          stat   = "Average"
-          period = 60
-          metrics = [
-            concat(["AWS/ECS", "CPUUtilization"], local.ecs_dim),
-            concat(["AWS/ECS", "MemoryUtilization"], local.ecs_dim),
-          ]
+          title   = "5. Відповіді 5xx за хвилину"
+          region  = var.region
+          stat    = "Sum"
+          period  = 60
+          view    = "timeSeries"
+          metrics = [concat(["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count"], local.alb_dim, [{ label = "5xx" }])]
         }
       },
       {
-        type = "metric", x = 12, y = 6, width = 12, height = 6
+        type = "metric", x = 0, y = 12, width = 12, height = 6
         properties = {
           title  = "База: CPU % і кількість з'єднань (RDS)"
           region = var.region
           stat   = "Average"
           period = 60
+          view   = "timeSeries"
           metrics = [
             concat(["AWS/RDS", "CPUUtilization"], local.db_dim),
             concat(["AWS/RDS", "DatabaseConnections"], local.db_dim, [{ yAxis = "right" }]),
@@ -122,22 +157,36 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
       {
-        type = "alarm", x = 0, y = 12, width = 24, height = 3
+        type = "metric", x = 12, y = 12, width = 12, height = 6
         properties = {
-          title = "Стан алертів"
-          alarms = [
-            aws_cloudwatch_metric_alarm.http_5xx.arn,
-            aws_cloudwatch_metric_alarm.no_healthy_targets.arn,
-            aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
+          title  = "База: операції читання за секунду (RDS)"
+          region = var.region
+          stat   = "Average"
+          period = 60
+          view   = "timeSeries"
+          metrics = [
+            concat(["AWS/RDS", "ReadIOPS"], local.db_dim),
+            concat(["AWS/RDS", "WriteIOPS"], local.db_dim),
           ]
         }
       },
       {
-        type = "log", x = 0, y = 15, width = 24, height = 8
+        type = "alarm", x = 0, y = 18, width = 24, height = 3
+        properties = {
+          title = "Стан алертів"
+          alarms = [
+            aws_cloudwatch_metric_alarm.ecs_cpu_high.arn,
+            aws_cloudwatch_metric_alarm.http_5xx.arn,
+            aws_cloudwatch_metric_alarm.no_healthy_targets.arn,
+          ]
+        }
+      },
+      {
+        type = "log", x = 0, y = 21, width = 24, height = 8
         properties = {
           title  = "Останні логи застосунку"
           region = var.region
-          query  = "SOURCE '${aws_cloudwatch_log_group.app.name}' | fields @timestamp, @message | sort @timestamp desc | limit 50"
+          query  = "SOURCE '${aws_cloudwatch_log_group.app.name}' | fields @timestamp, @logStream, @message | sort @timestamp desc | limit 50"
           view   = "table"
         }
       },

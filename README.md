@@ -1,4 +1,4 @@
-# Notes API — Cloud Lab 1
+# Notes API — Cloud Lab 1 і 2
 
 REST API для нотаток на FastAPI і PostgreSQL, розгорнутий в AWS через Terraform. Нотатки можна переглядати, додавати і видаляти через просту HTML-сторінку або через API.
 
@@ -18,6 +18,8 @@ ECS Fargate (приватні підмережі)
    │ :5432, тільки від SG застосунку
    ▼
 RDS PostgreSQL (приватні підмережі, без публічної адреси)
+
+ECS Fargate ──:6379──▶ Redis (окремий ECS-сервіс, redis.notes.local)
 ```
 
 - Образи зберігаються в ECR
@@ -32,9 +34,12 @@ RDS PostgreSQL (приватні підмережі, без публічної �
 |---|---|---|
 | GET | `/` | HTML-сторінка |
 | GET | `/health` | перевірка стану для ALB |
-| GET | `/notes` | список нотаток |
-| POST | `/notes` | створити нотатку, тіло `{"text": "..."}` |
+| GET | `/notes` | останні 50 нотаток, кешується в Redis |
+| GET | `/notes/{id}` | одна нотатка |
+| POST | `/notes` | створити нотатку, тіло `{"text": "...", "author": "..."}` |
 | DELETE | `/notes/{id}` | видалити нотатку |
+| GET | `/authors/{author}` | кількість нотаток автора і час останньої |
+| GET | `/stats` | лічильники кешу і запитів до бази |
 | GET | `/debug/error` | завжди повертає 500, для перевірки алерту |
 
 ## Структура проєкту
@@ -54,10 +59,21 @@ infra/                   Terraform
   alb.tf                 балансувальник
   ecs.tf                 кластер, task definition, сервіс, логи
   github_oidc.tf         роль для GitHub Actions через OIDC
+  autoscaling.tf         автомасштабування за CPU
+  redis.tf               Redis і приватний DNS Cloud Map
   monitoring.tf          алерти, SNS, дашборд
   outputs.tf             адреса застосунку, дашборда, ECR, ролі
 .github/workflows/deploy.yml   CI/CD
+loadtest/                сценарій k6
+docs/                    звіти лабораторної 2
 ```
+
+## Лабораторна 2
+
+- [Автомасштабування і панель](docs/AUTOSCALING.md)
+- [Навантажувальний тест](docs/LOADTEST.md)
+- [Сповіщення](docs/ALERTS.md)
+- [Кеш](docs/CACHE.md)
 
 ## Локальний запуск
 

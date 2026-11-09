@@ -34,7 +34,7 @@ resource "aws_iam_role_policy" "github_deploy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { 
+      {
         Effect   = "Allow"
         Action   = "ecr:GetAuthorizationToken"
         Resource = "*"
@@ -48,17 +48,17 @@ resource "aws_iam_role_policy" "github_deploy" {
         ]
         Resource = aws_ecr_repository.app.arn
       },
-      { 
+      {
         Effect   = "Allow"
         Action   = ["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition"]
         Resource = "*"
       },
-      { 
+      {
         Effect   = "Allow"
         Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
         Resource = aws_ecs_service.app.id
       },
-      { 
+      {
         Effect   = "Allow"
         Action   = "iam:PassRole"
         Resource = aws_iam_role.ecs_execution.arn

@@ -12,6 +12,10 @@ services:
       interval: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
   api:
     build: .
     ports:
@@ -21,9 +25,14 @@ services:
       DB_NAME: notes
       DB_USER: notes
       DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      CACHE_ENABLED: ${CACHE_ENABLED:-true}
+      CACHE_TTL: "30"
     depends_on:
       db:
-        condition: service_healthy        
+        condition: service_healthy
+      redis:
+        condition: service_started        
 
 volumes:
   db-data:

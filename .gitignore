@@ -9,3 +9,5 @@ tfplan
 
 __pycache__/
 .venv/
+
+loadtest/results/*-full.json

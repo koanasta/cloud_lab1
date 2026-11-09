@@ -8,7 +8,7 @@ data "aws_iam_policy_document" "ecs_assume" {
     actions = ["sts:AssumeRole"]
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"] 
+      identifiers = ["ecs-tasks.amazonaws.com"]
     }
   }
 }
@@ -38,6 +38,11 @@ resource "aws_iam_role_policy" "read_db_secret" {
 
 resource "aws_ecs_cluster" "main" {
   name = var.project
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
 
 resource "aws_ecs_task_definition" "app" {
@@ -53,11 +58,15 @@ resource "aws_ecs_task_definition" "app" {
     image        = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
     essential    = true
     portMappings = [{ containerPort = 8000 }]
+    stopTimeout  = 30
 
     environment = [
       { name = "DB_HOST", value = aws_db_instance.main.address },
       { name = "DB_NAME", value = aws_db_instance.main.db_name },
       { name = "DB_USER", value = aws_db_instance.main.username },
+      { name = "REDIS_HOST", value = "redis.${aws_service_discovery_private_dns_namespace.main.name}" },
+      { name = "CACHE_ENABLED", value = tostring(var.cache_enabled) },
+      { name = "CACHE_TTL", value = tostring(var.cache_ttl) },
     ]
     secrets = [
       { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
@@ -82,7 +91,7 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id 
+    subnets          = aws_subnet.private[*].id
     security_groups  = [aws_security_group.app.id]
     assign_public_ip = false
   }
@@ -97,6 +106,6 @@ resource "aws_ecs_service" "app" {
 
 
   lifecycle {
-    ignore_changes = [task_definition]
+    ignore_changes = [task_definition, desired_count]
   }
 }

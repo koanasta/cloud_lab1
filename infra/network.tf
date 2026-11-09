@@ -10,7 +10,7 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id 
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_subnet" "public" {
@@ -25,7 +25,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index + 10) 
+  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index + 10)
   availability_zone = data.aws_availability_zones.available.names[count.index]
   tags              = { Name = "${var.project}-private-${count.index}" }
 }
@@ -36,7 +36,7 @@ resource "aws_eip" "nat" {
 
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id 
+  subnet_id     = aws_subnet.public[0].id
   depends_on    = [aws_internet_gateway.main]
 }
 

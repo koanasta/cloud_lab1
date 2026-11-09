@@ -10,8 +10,8 @@ resource "aws_db_instance" "main" {
   instance_class    = "db.t4g.micro"
   allocated_storage = 20
 
-  db_name  = "notes"
-  username = "notes"
+  db_name                     = "notes"
+  username                    = "notes"
   manage_master_user_password = true
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
@@ -19,7 +19,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false # жодної публічної адреси
 
   multi_az                = false
-  backup_retention_period = 1     
-  skip_final_snapshot     = true  
+  backup_retention_period = 1
+  skip_final_snapshot     = true
   deletion_protection     = false
 }

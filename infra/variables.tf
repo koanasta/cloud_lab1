@@ -30,3 +30,33 @@ variable "alert_email" {
   description = "Пошта, куди CloudWatch надсилатиме алерти"
   type        = string
 }
+
+variable "cache_enabled" {
+  description = "Чи вмикати кеш Redis для GET /notes"
+  type        = bool
+  default     = true
+}
+
+variable "cache_ttl" {
+  description = "Термін дії запису в кеші, секунди"
+  type        = number
+  default     = 30
+}
+
+variable "min_instances" {
+  description = "Мінімальна кількість копій застосунку"
+  type        = number
+  default     = 1
+}
+
+variable "max_instances" {
+  description = "Максимальна кількість копій застосунку"
+  type        = number
+  default     = 3
+}
+
+variable "cpu_target" {
+  description = "Цільове середнє завантаження CPU для автомасштабування, %"
+  type        = number
+  default     = 60
+}
