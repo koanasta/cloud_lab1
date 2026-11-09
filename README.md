@@ -20,6 +20,7 @@ ECS Fargate (приватні підмережі)
 RDS PostgreSQL (приватні підмережі, без публічної адреси)
 
 ECS Fargate ──:6379──▶ Redis (окремий ECS-сервіс, redis.notes.local)
+ECS Fargate ──▶ SQS notes-jobs ──▶ ECS notes-worker ──▶ RDS
 ```
 
 - Образи зберігаються в ECR
@@ -36,7 +37,8 @@ ECS Fargate ──:6379──▶ Redis (окремий ECS-сервіс, redis.n
 | GET | `/health` | перевірка стану для ALB |
 | GET | `/notes` | останні 50 нотаток, кешується в Redis |
 | GET | `/notes/{id}` | одна нотатка |
-| POST | `/notes` | створити нотатку, тіло `{"text": "...", "author": "..."}` |
+| POST | `/notes` | створити нотатку, тіло `{"text": "...", "author": "..."}`; заголовки `Idempotency-Key` і `Prefer: respond-async` необов'язкові |
+| GET | `/jobs/{id}` | статус асинхронного запису |
 | DELETE | `/notes/{id}` | видалити нотатку |
 | GET | `/authors/{author}` | кількість нотаток автора і час останньої |
 | GET | `/stats` | лічильники кешу і запитів до бази |
@@ -46,6 +48,8 @@ ECS Fargate ──:6379──▶ Redis (окремий ECS-сервіс, redis.n
 
 ```
 app/main.py              застосунок FastAPI
+app/worker.py            обробник черги
+app/common.py            спільний код: база, Redis, міграція
 app/static/index.html    HTML-сторінка
 Dockerfile               образ застосунку
 compose.yaml             локальний запуск разом з PostgreSQL
@@ -61,10 +65,13 @@ infra/                   Terraform
   github_oidc.tf         роль для GitHub Actions через OIDC
   autoscaling.tf         автомасштабування за CPU
   redis.tf               Redis і приватний DNS Cloud Map
+  queue.tf               SQS, DLQ, обробник черги, його масштабування
+  schedule.tf            масштабування за розкладом
   monitoring.tf          алерти, SNS, дашборд
   outputs.tf             адреса застосунку, дашборда, ECR, ролі
 .github/workflows/deploy.yml   CI/CD
 loadtest/                сценарій k6
+tests/                   тест ідемпотентності
 docs/                    звіти лабораторної 2
 ```
 
@@ -74,6 +81,7 @@ docs/                    звіти лабораторної 2
 - [Навантажувальний тест](docs/LOADTEST.md)
 - [Сповіщення](docs/ALERTS.md)
 - [Кеш](docs/CACHE.md)
+- Бонус: [черга](docs/QUEUE.md), [ідемпотентність](docs/IDEMPOTENCY.md), [розклад](docs/SCHEDULE.md)
 
 ## Локальний запуск
 

@@ -52,6 +52,7 @@ resource "aws_ecs_task_definition" "app" {
   cpu                      = 256 # 0.25 vCPU
   memory                   = 512 # 512 МБ
   execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.app_task.arn
 
   container_definitions = jsonencode([{
     name         = "app"
@@ -67,6 +68,8 @@ resource "aws_ecs_task_definition" "app" {
       { name = "REDIS_HOST", value = "redis.${aws_service_discovery_private_dns_namespace.main.name}" },
       { name = "CACHE_ENABLED", value = tostring(var.cache_enabled) },
       { name = "CACHE_TTL", value = tostring(var.cache_ttl) },
+      { name = "QUEUE_URL", value = aws_sqs_queue.jobs.url },
+      { name = "AWS_REGION", value = var.region },
     ]
     secrets = [
       { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },

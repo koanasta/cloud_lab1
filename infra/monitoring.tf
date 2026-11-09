@@ -171,7 +171,52 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
       {
-        type = "alarm", x = 0, y = 18, width = 24, height = 3
+        type = "metric", x = 0, y = 18, width = 8, height = 6
+        properties = {
+          title  = "Черга: повідомлень очікує / оброблено за хвилину"
+          region = var.region
+          period = 60
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", aws_sqs_queue.jobs.name, { stat = "Maximum", label = "Очікує" }],
+            ["AWS/SQS", "NumberOfMessagesDeleted", "QueueName", aws_sqs_queue.jobs.name, { stat = "Sum", label = "Оброблено", yAxis = "right" }],
+          ]
+          annotations = {
+            horizontal = [{ label = "ціль ${var.queue_backlog_target}", value = var.queue_backlog_target }]
+          }
+        }
+      },
+      {
+        type = "metric", x = 8, y = 18, width = 8, height = 6
+        properties = {
+          title  = "Обробники черги: бажана і фактична кількість"
+          region = var.region
+          stat   = "Average"
+          period = 60
+          view   = "timeSeries"
+          metrics = [
+            ["ECS/ContainerInsights", "DesiredTaskCount", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.worker.name, { label = "Desired" }],
+            ["ECS/ContainerInsights", "RunningTaskCount", "ClusterName", aws_ecs_cluster.main.name, "ServiceName", aws_ecs_service.worker.name, { label = "Running" }],
+          ]
+          yAxis = { left = { min = 0, max = var.worker_max_instances + 1 } }
+        }
+      },
+      {
+        type = "metric", x = 16, y = 18, width = 8, height = 6
+        properties = {
+          title  = "Найстаріше повідомлення в черзі, секунди"
+          region = var.region
+          stat   = "Maximum"
+          period = 60
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/SQS", "ApproximateAgeOfOldestMessage", "QueueName", aws_sqs_queue.jobs.name, { label = "Вік" }],
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", aws_sqs_queue.dlq.name, { label = "У DLQ", yAxis = "right" }],
+          ]
+        }
+      },
+      {
+        type = "alarm", x = 0, y = 24, width = 24, height = 3
         properties = {
           title = "Стан алертів"
           alarms = [
@@ -182,7 +227,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
       {
-        type = "log", x = 0, y = 21, width = 24, height = 8
+        type = "log", x = 0, y = 27, width = 24, height = 8
         properties = {
           title  = "Останні логи застосунку"
           region = var.region

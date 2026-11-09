@@ -60,3 +60,39 @@ variable "cpu_target" {
   type        = number
   default     = 60
 }
+
+variable "worker_max_instances" {
+  description = "Максимальна кількість обробників черги"
+  type        = number
+  default     = 3
+}
+
+variable "queue_backlog_target" {
+  description = "Цільова кількість повідомлень у черзі для масштабування обробника"
+  type        = number
+  default     = 20
+}
+
+variable "worker_delay_ms" {
+  description = "Штучна затримка обробки одного повідомлення, мс"
+  type        = number
+  default     = 300
+}
+
+variable "schedule_enabled" {
+  description = "Чи вмикати масштабування за розкладом"
+  type        = bool
+  default     = false
+}
+
+variable "day_min_instances" {
+  description = "Мінімум копій удень, 08:00-22:00 за Києвом"
+  type        = number
+  default     = 2
+}
+
+variable "night_min_instances" {
+  description = "Мінімум копій уночі, 22:00-08:00 за Києвом"
+  type        = number
+  default     = 1
+}

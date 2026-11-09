@@ -16,6 +16,9 @@ env:
   ECS_SERVICE: notes
   TASK_FAMILY: notes
   CONTAINER_NAME: app
+  WORKER_SERVICE: notes-worker
+  WORKER_FAMILY: notes-worker
+  WORKER_CONTAINER: worker
 
 jobs:
   deploy:
@@ -33,7 +36,7 @@ jobs:
 
       - name: Build and push image
         run: |
-          IMAGE="${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:${{ github.sha }}"
+          IMAGE="${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:${{ github.sha }}-${{ github.run_id }}"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
@@ -52,5 +55,22 @@ jobs:
         with:
           task-definition: ${{ steps.render.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Download current worker task definition
+        run: aws ecs describe-task-definition --task-definition "$WORKER_FAMILY" --query taskDefinition > worker-task-def.json
+
+      - id: render-worker
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: worker-task-def.json
+          container-name: ${{ env.WORKER_CONTAINER }}
+          image: ${{ env.IMAGE }}
+
+      - uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-worker.outputs.task-definition }}
+          service: ${{ env.WORKER_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
